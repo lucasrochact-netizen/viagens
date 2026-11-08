@@ -153,6 +153,8 @@ Arquivos extras gravados por execução para alimentá-lo:
 | `ultima.json` | snapshot completo da última execução, com todas as opções de cada destino (preço, duração, paradas, cia) |
 | `google.json` | `price_history` por destino, mesclado por data — cresce além dos ~60 dias do Google |
 
-Sem autenticação — por isso escuta só em `127.0.0.1` (`PAINEL_HOST`).
-Para ver de fora: `ssh -L 3060:127.0.0.1:3060 <servidor>`. Antes de expor
-por cloudflared, decidir se precisa de token.
+Exposto em `https://viagens.privateequitybrasil.site` pelo túnel
+`82bc0bec` (`~/.cloudflared/config.yml`, unit `cloudflared-mockup`).
+Protegido por link secreto: `/?k=<PAINEL_TOKEN>` grava um cookie de 1 ano
+e redireciona; sem ele, 401. O servidor continua escutando só em
+`127.0.0.1` — o acesso de fora passa pelo túnel.
