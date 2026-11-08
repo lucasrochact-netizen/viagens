@@ -1,5 +1,5 @@
 [Unit]
-Description=Painel da varredura de passagens (fachada-bot-wa)
+Description=Painel da varredura de passagens (viagens)
 After=network-online.target
 Wants=network-online.target
 
@@ -7,8 +7,8 @@ Wants=network-online.target
 Type=simple
 User=claude-agent
 Group=claude-agent
-WorkingDirectory=/home/claude-agent/fachada-bot-wa
-ExecStart=/usr/bin/node src/varredura/servidor.js
+WorkingDirectory=/home/claude-agent/tasks/viagens
+ExecStart=/usr/bin/node src/servidor.js
 Restart=always
 RestartSec=5
 
