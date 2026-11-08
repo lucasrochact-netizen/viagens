@@ -1,0 +1,21 @@
+{
+  "name": "viagens",
+  "version": "1.0.0",
+  "description": "Varredura de passagens internacionais saindo de São Paulo, com série histórica e painel web",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "varredura": "node src/cli.js",
+    "varredura:dry": "node src/cli.js --dry-run",
+    "varredura:check": "node src/cli.js --check",
+    "painel": "node src/servidor.js",
+    "test": "node --test \"test/**/*.test.js\""
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1"
+  }
+}

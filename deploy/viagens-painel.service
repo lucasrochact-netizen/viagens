@@ -1,0 +1,16 @@
+[Unit]
+Description=Painel da varredura de passagens (fachada-bot-wa)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=claude-agent
+Group=claude-agent
+WorkingDirectory=/home/claude-agent/fachada-bot-wa
+ExecStart=/usr/bin/node src/varredura/servidor.js
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
