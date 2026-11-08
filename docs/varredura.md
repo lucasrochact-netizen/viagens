@@ -71,6 +71,14 @@ a detecção de anomalia depende do histórico local.
 **5. Buscas em cache são grátis** e não contam na cota. O cache dura 1h, o
 que não ajuda um job diário mas torna o desenvolvimento barato.
 
+**6. EUA com Texas (medido em 08/11).** `JFK,MIA,MCO,LAX,ORD,IAH,DFW,AUS`
+devolveu só 20 itinerários e 7 destinos — Austin não apareceu. Dallas e
+Houston vêm diretos (American/United, ~10h).
+
+**7. Uberaba (UBA) não existe no Google Flights.** Três buscas só de ida
+(UBA→CGH/GRU/VCP, datas diferentes) voltaram vazias. Uberlândia (UDI)
+tem direto para Congonhas (Gol/LATAM).
+
 ## Por que não ordenar por preço absoluto
 
 Ranquear por valor faz a América do Sul monopolizar a lista todo dia:
@@ -92,7 +100,7 @@ no geral — senão as 7 chamadas iriam todas para a América do Sul.
 
 ## Custo
 
-14 buscas por execução com `VARREDURA_GATILHO_TODAS=true` (7 regiões + 7
+16 buscas por execução com `VARREDURA_GATILHO_TODAS=true` (8 regiões + 8
 gatilhos).
 
 | Frequência | Buscas/mês | Plano grátis (250) |
@@ -101,7 +109,7 @@ gatilhos).
 | Dia sim, dia não | 210 | cabe |
 | Diária, plano US$ 25 (1.000) | 420 | cabe com folga |
 
-Com `VARREDURA_GATILHO_TODAS=false` são 8 buscas/execução e as regiões se
+Com `VARREDURA_GATILHO_TODAS=false` são 9 buscas/execução e as regiões se
 revezam no gatilho, cobrindo todas a cada 7 dias.
 
 ## Dados
@@ -120,7 +128,7 @@ Os CSV usam `;` como separador, que é o que o Excel em pt-BR espera.
 ## Agendamento
 
 ```cron
-# crontab do claude-agent (CRON_TZ=America/Sao_Paulo no topo) — todo dia às 9h, 8 buscas
+# crontab do claude-agent (CRON_TZ=America/Sao_Paulo no topo) — todo dia às 9h, 9 a 16 buscas
 0 9 * * * cd /home/claude-agent/tasks/viagens && /usr/bin/node src/cli.js >> logs/varredura.log 2>&1
 ```
 

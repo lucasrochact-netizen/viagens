@@ -22,7 +22,10 @@ export const MAX_AEROPORTOS_POR_REGIAO = 8;
 
 export const REGIOES = {
   "America do Sul": ["EZE", "SCL", "MVD", "ASU", "LIM", "BOG", "UIO", "CCS"],
-  "America do N/Central": ["JFK", "MIA", "LAX", "ORD", "YYZ", "MEX", "CUN", "PTY"],
+  // EUA separado da América Central: com o Texas, uma região só passaria
+  // de 8 aeroportos e os destinos disputariam os mesmos ~40 resultados.
+  EUA: ["JFK", "MIA", "MCO", "LAX", "ORD", "IAH", "DFW", "AUS"],
+  "America do N/Central": ["YYZ", "MEX", "CUN", "PTY"],
   "Europa Iberia/Medit": ["LIS", "OPO", "MAD", "BCN", "FCO", "MXP", "ATH", "VCE"],
   "Europa Centro/Norte": ["LHR", "CDG", "FRA", "AMS", "ZRH", "MUC", "CPH", "DUB"],
   "Oriente Medio": ["IST", "DXB", "DOH", "AUH", "TLV", "RUH", "CAI", "AMM"],
@@ -36,6 +39,7 @@ export const CIDADES = {
   LIM: "Lima", BOG: "Bogotá", UIO: "Quito", CCS: "Caracas", LPB: "La Paz",
   VVI: "Santa Cruz", GYE: "Guayaquil", PBM: "Paramaribo",
   JFK: "Nova York", MIA: "Miami", LAX: "Los Angeles", ORD: "Chicago",
+  MCO: "Orlando", IAH: "Houston", DFW: "Dallas", AUS: "Austin",
   YYZ: "Toronto", MEX: "Cidade do México", CUN: "Cancún", PTY: "Cidade do Panamá",
   LIS: "Lisboa", OPO: "Porto", MAD: "Madri", BCN: "Barcelona", CDG: "Paris",
   FCO: "Roma", MXP: "Milão", ATH: "Atenas", VCE: "Veneza",

@@ -52,14 +52,14 @@ Ver `.env.example`. Obrigatórios: `SERPAPI_KEY`, `VARREDURA_IDA`,
 npm ci
 npm test                  # 16 testes, sem rede
 npm run varredura:check   # 1 busca — valida chave, datas e rede
-npm run varredura         # 14 buscas, grava a série
+npm run varredura         # 9 a 16 buscas, grava a série
 npm run painel            # http://127.0.0.1:3060/varredura
 ```
 
 ## Armadilhas já pagas
 
 **Não importe `src/cli.js` para "testar".** Importar executa a varredura
-inteira (14 buscas) e grava. Para checar sintaxe: `node --check src/cli.js`.
+inteira (9 a 16 buscas) e grava. Para checar sintaxe: `node --check src/cli.js`.
 
 **Teto do `arrival_id`.** Até ~10 aeroportos. Com 12 a API responde
 `Google Flights hasn't returned any results for this query`, que parece
@@ -84,12 +84,16 @@ da faixa típica da própria rota.
 ## Custo
 
 Roda **todo dia às 9h** (crontab do claude-agent) com
-`VARREDURA_GATILHO_TODAS=false`: 7 regiões + 1 gatilho em rodízio = 8 buscas.
+`VARREDURA_GATILHO_TODAS=false`: 8 regiões + 1 gatilho em rodízio = 9 buscas.
+Desde 08/11 são 8 regiões (EUA separado, com o Texas).
 
 | Configuração | Buscas/mês | Plano grátis (250) |
 |---|---|---|
-| Diária, gatilho em rodízio (atual) | ~248 | cabe, sem folga |
-| Diária, todos os gatilhos (`true`) | ~430 | exige plano de US$ 25 |
+| Diária, gatilho em rodízio (atual) | ~280 | estoura ~dia 27 |
+| Diária, todos os gatilhos (`true`) | ~490 | plano de US$ 25 (1.000) |
+
+O usuário optou pelo plano de US$ 25. Quando ele estiver ativo, trocar
+para `VARREDURA_GATILHO_TODAS=true`.
 
 Com rodízio, a faixa normal de cada região se renova a cada 7 dias; o painel
 compara a faixa mais recente com o preço de hoje (que vem da descoberta,

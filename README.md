@@ -7,7 +7,7 @@ Google Flights), com série histórica e painel web.
 npm ci && cp .env.example .env   # preencha SERPAPI_KEY
 npm test
 npm run varredura:check          # 1 busca
-npm run varredura                # 14 buscas, grava a série
+npm run varredura                # 9 a 16 buscas, grava a série
 npm run painel                   # http://127.0.0.1:3060/varredura
 ```
 

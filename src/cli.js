@@ -3,7 +3,7 @@
  * CLI da varredura — o que o cron chama.
  *
  *   node src/cli.js --check      1 busca: valida chave e datas
- *   node src/cli.js --dry-run    varre tudo, não grava (14 buscas)
+ *   node src/cli.js --dry-run    varre tudo, não grava (até 16 buscas)
  *   node src/cli.js              varre e grava
  */
 import "dotenv/config";
