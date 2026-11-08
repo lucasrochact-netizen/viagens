@@ -83,15 +83,20 @@ da faixa típica da própria rota.
 
 ## Custo
 
-14 buscas por execução (7 regiões + 7 gatilhos).
+Roda **todo dia às 9h** (crontab do claude-agent) com
+`VARREDURA_GATILHO_TODAS=false`: 7 regiões + 1 gatilho em rodízio = 8 buscas.
 
-| Frequência | Buscas/mês | Plano grátis (250) |
+| Configuração | Buscas/mês | Plano grátis (250) |
 |---|---|---|
-| Diária | 420 | estoura ~dia 18 |
-| Dia sim, dia não | 210 | cabe |
+| Diária, gatilho em rodízio (atual) | ~248 | cabe, sem folga |
+| Diária, todos os gatilhos (`true`) | ~430 | exige plano de US$ 25 |
 
-Buscas em cache (1h) são grátis e não contam — desenvolver sai de graça,
-o job diário não se beneficia.
+Com rodízio, a faixa normal de cada região se renova a cada 7 dias; o painel
+compara a faixa mais recente com o preço de hoje (que vem da descoberta,
+diária) e mostra "faixa de dd/mm" quando ela não é do dia.
+
+Sobra pouca cota: um `varredura:check` ou execução manual a mais no mês
+pode estourar. Buscas em cache (1h) não contam.
 
 ## Histórico do Windows
 

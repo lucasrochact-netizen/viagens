@@ -120,8 +120,8 @@ Os CSV usam `;` como separador, que é o que o Excel em pt-BR espera.
 ## Agendamento
 
 ```cron
-# crontab do claude-agent (CRON_TZ=America/Sao_Paulo no topo) — dia sim, dia não, às 9h
-0 9 */2 * * cd /home/claude-agent/tasks/viagens && /usr/bin/node src/cli.js >> logs/varredura.log 2>&1
+# crontab do claude-agent (CRON_TZ=America/Sao_Paulo no topo) — todo dia às 9h, 8 buscas
+0 9 * * * cd /home/claude-agent/tasks/viagens && /usr/bin/node src/cli.js >> logs/varredura.log 2>&1
 ```
 
 ## Configurar regiões
