@@ -32,6 +32,22 @@ function appendCsv(arquivo, colunas, linhas) {
   appendFileSync(arquivo, (novo ? colunas.join(";") + "\n" : "") + corpo + "\n", "utf8");
 }
 
+/**
+ * Grava as linhas do dia substituindo as que já existem com a mesma data.
+ * Rodar duas vezes no mesmo dia não duplica a série.
+ */
+function gravarDiaCsv(arquivo, colunas, data, linhas) {
+  if (!linhas.length) return;
+  if (existsSync(arquivo)) {
+    const [cab, ...resto] = readFileSync(arquivo, "utf8").split("\n").filter(Boolean);
+    const mantidas = resto.filter((l) => !l.startsWith(`${data};`));
+    if (mantidas.length !== resto.length) {
+      writeFileSync(arquivo, [cab, ...mantidas].join("\n") + "\n", "utf8");
+    }
+  }
+  appendCsv(arquivo, colunas, linhas);
+}
+
 export class Store {
   constructor(dataDir) {
     this.dir = dataDir;
@@ -90,7 +106,7 @@ export class Store {
     }
     writeFileSync(this.arqRotasHist, JSON.stringify(hist), "utf8");
     const p = (o, campo) => (o ? o[campo] : "");
-    appendCsv(this.csvRotas, COLUNAS_ROTAS, r.viagens.map((v) => ({
+    gravarDiaCsv(this.csvRotas, COLUNAS_ROTAS, data, r.viagens.map((v) => ({
       data, rota: v.rota, sexta: v.sexta, total: v.total ?? "",
       ida_preco: p(v.melhorIda, "preco"), ida_partida: p(v.melhorIda, "partida"),
       ida_trecho: v.melhorIda ? `${v.melhorIda.de}-${v.melhorIda.para}` : "", ida_cia: p(v.melhorIda, "cia"),
@@ -131,15 +147,16 @@ export class Store {
   gravarPrecos(data, destinos, { ida, volta, cidadeDe, maxPontos = 400 }) {
     const hist = this.lerHistorico();
     for (const d of destinos) {
-      const serie = Array.isArray(hist[d.destino]) ? hist[d.destino] : [];
+      const serie = (Array.isArray(hist[d.destino]) ? hist[d.destino] : []).filter((p) => p.data !== data);
       serie.push({ data, preco: d.preco, duracao: d.duracao || 0 });
       hist[d.destino] = serie.slice(-maxPontos);
     }
     writeFileSync(this.arqHist, JSON.stringify(hist, null, 2), "utf8");
 
-    appendCsv(
+    gravarDiaCsv(
       this.csvPrecos,
       COLUNAS_PRECOS,
+      data,
       destinos.map((d) => ({
         data, destino: d.destino, cidade: cidadeDe(d.destino), regiao: d.regiao,
         preco: d.preco, paradas: d.paradas, cia: d.cia, ida, volta,
@@ -148,9 +165,10 @@ export class Store {
   }
 
   gravarInsights(data, linhas, { cidadeDe }) {
-    appendCsv(
+    gravarDiaCsv(
       this.csvInsights,
       COLUNAS_INSIGHTS,
+      data,
       linhas.map((l) => ({
         data, destino: l.destino, cidade: cidadeDe(l.destino), regiao: l.regiao,
         preco: l.insights.preco, faixa_min: l.insights.faixaMin,

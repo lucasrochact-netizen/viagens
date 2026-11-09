@@ -279,3 +279,13 @@ test("saldo lê a Account API sem contar como busca", async () => {
   };
   assert.deepEqual(await saldo({ apiKey: "k" }, { fetchImpl }), { restantes: 987, porMes: 1000, plano: "Developer" });
 });
+
+test("rodar duas vezes no mesmo dia substitui o dia em vez de duplicar", async () => {
+  const dir = tempDir();
+  const fetchImpl = fakeFetch({ "ASU,SCL,LIM": RESPOSTA_MULTI, default: RESPOSTA_UNICA });
+  await varrer(cfgBase(dir), { fetchImpl, hoje: "2026-11-08" });
+  await varrer(cfgBase(dir), { fetchImpl, hoje: "2026-11-08" });
+  const linhas = readFileSync(path.join(dir, "precos.csv"), "utf8").trim().split("\n");
+  assert.equal(linhas.filter((l) => l.startsWith("2026-11-08;ASU;")).length, 1);
+  assert.equal(new Store(dir).lerHistorico().ASU.length, 1);
+});
