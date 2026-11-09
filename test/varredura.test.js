@@ -187,3 +187,95 @@ test("painel sem varredura gravada devolve ultima null em vez de quebrar", () =>
   assert.equal(d.ultima, null);
   assert.deepEqual(d.google, {});
 });
+
+// --- rotas fixas ---
+
+import { proximasSextas, planejar, escolher, opcoesIda, varrerRotas, ROTAS, JANELAS } from "../src/rotas.js";
+import { IDA_UDI_SP_SEXTA, voo } from "./fixtures/serpapi.js";
+
+const cfgRotas = (dataDir) => ({ ...cfgBase(dataDir), rotas: { finsDeSemana: 2, toleranciaCgh: 0.2 } });
+
+test("proximasSextas pula a sexta de hoje e conta as seguintes", () => {
+  assert.deepEqual(proximasSextas("2026-11-08", 2), ["2026-11-13", "2026-11-20"]); // domingo
+  assert.deepEqual(proximasSextas("2026-11-13", 1), ["2026-11-20"]);               // sexta
+  assert.deepEqual(proximasSextas("2026-11-12", 1), ["2026-11-13"]);               // quinta
+});
+
+test("planejar busca cada perna uma vez só: 16 buscas por fim de semana", () => {
+  const { buscas, viagens } = planejar(ROTAS, ["2026-11-13"]);
+  assert.equal(buscas.length, 16);
+  assert.equal(viagens.length, 4);
+  const udiSp = viagens.find((v) => v.rota === "udi-sp");
+  assert.equal(buscas.find((b) => b.chave === udiSp.ida[0].chave).data, "2026-11-13");
+  assert.equal(buscas.find((b) => b.chave === udiSp.volta[1].chave).data, "2026-11-16");
+});
+
+test("janela de ida da sexta descarta voo de manhã", () => {
+  const ops = opcoesIda(IDA_UDI_SP_SEXTA).filter((o) => JANELAS.ida[0].aceita(o, "2026-11-13"));
+  assert.deepEqual(ops.map((o) => o.preco), [1100, 1248]);
+});
+
+test("janela de segunda recusa voo que chega antes das 10h mas na terça", () => {
+  const seg = JANELAS.volta[1];
+  const ok = opcoesIda({ best_flights: [voo("CGH", "UDI", "2026-11-16 05:20", "2026-11-16 09:10", "Azul", 900)] })[0];
+  const terca = opcoesIda({ best_flights: [voo("CGH", "UDI", "2026-11-16 18:20", "2026-11-17 06:25", "LATAM", 800)] })[0];
+  assert.equal(seg.aceita(ok, "2026-11-16"), true);
+  assert.equal(seg.aceita(terca, "2026-11-16"), false);
+});
+
+test("prefere CGH, a não ser que outro aeroporto saia 20% mais barato", () => {
+  const ops = opcoesIda(IDA_UDI_SP_SEXTA).filter((o) => JANELAS.ida[0].aceita(o, "2026-11-13"));
+  assert.equal(escolher(ops).para, "CGH");            // GRU só 12% mais barato
+  const gruBarato = [{ ...ops[0], preco: 900 }, ops[1]];
+  assert.equal(escolher(gruBarato).para, "GRU");      // 28% mais barato
+  assert.match(escolher(gruBarato).motivo, /mais barato que CGH/);
+});
+
+test("rotas: sem voo na janela vira perna vazia, não erro", async () => {
+  const dir = tempDir();
+  const fetchImpl = async (url) => {
+    const p = new URL(url).searchParams;
+    if (p.get("type") !== "2") throw new Error("rotas devem buscar só ida");
+    if (p.get("departure_id") === "UBA,UDI" && p.get("arrival_id") === "CGH,GRU,VCP" && p.get("outbound_date") === "2026-11-13")
+      return { ok: true, status: 200, json: async () => IDA_UDI_SP_SEXTA };
+    if (p.get("departure_id") === "CGH,GRU,VCP" && p.get("arrival_id") === "UBA,UDI" && p.get("outbound_date") === "2026-11-15")
+      return { ok: true, status: 200, json: async () => ({ best_flights: [voo("CGH", "UDI", "2026-11-15 19:30", "2026-11-15 20:45", "Gol", 700)] }) };
+    return { ok: true, status: 200, json: async () => ({ error: "Google Flights hasn't returned any results for this query." }) };
+  };
+  const r = await varrerRotas(cfgRotas(dir), { fetchImpl, hoje: "2026-11-08", dryRun: true });
+  assert.equal(r.buscasUsadas, 32);
+  const v = r.viagens.find((x) => x.rota === "udi-sp" && x.sexta === "2026-11-13");
+  assert.equal(v.melhorIda.para, "CGH");
+  assert.equal(v.melhorVolta.preco, 700);
+  assert.equal(v.total, 1948);
+  const vazia = r.viagens.find((x) => x.rota === "sp-bsb");
+  assert.equal(vazia.total, null);
+  assert.equal(vazia.ida[0].erro, undefined);
+});
+
+test("rotas gravam série por viagem e substituem a execução do mesmo dia", async () => {
+  const dir = tempDir();
+  const fetchImpl = async (url) => {
+    const p = new URL(url).searchParams;
+    const de = p.get("departure_id").split(",")[0], para = p.get("arrival_id").split(",")[0];
+    const d = p.get("outbound_date");
+    const h = p.get("outbound_times").startsWith("0,23") ? (p.get("outbound_times").endsWith("18,23") ? "20:00" : "07:00") : (p.get("outbound_times") === "18,23" ? "19:00" : "08:00");
+    return { ok: true, status: 200, json: async () => ({ best_flights: [voo(de, para, `${d} ${h}`, `${d} ${h}`, "Gol", 500)] }) };
+  };
+  const store = new Store(dir);
+  await varrerRotas(cfgRotas(dir), { fetchImpl, hoje: "2026-11-08", store });
+  await varrerRotas(cfgRotas(dir), { fetchImpl, hoje: "2026-11-08", store });
+  const hist = JSON.parse(readFileSync(path.join(dir, "rotas_historico.json"), "utf8"));
+  assert.equal(hist["udi-sp|2026-11-13"].length, 1);
+  assert.equal(hist["udi-sp|2026-11-13"][0].total, 1000);
+  assert.ok(existsSync(path.join(dir, "rotas_ultima.json")));
+});
+
+test("saldo lê a Account API sem contar como busca", async () => {
+  const { saldo } = await import("../src/serpapi.js");
+  const fetchImpl = async (url) => {
+    assert.match(String(url), /account\.json/);
+    return { ok: true, status: 200, json: async () => ({ plan_name: "Developer", searches_per_month: 1000, total_searches_left: 987 }) };
+  };
+  assert.deepEqual(await saldo({ apiKey: "k" }, { fetchImpl }), { restantes: 987, porMes: 1000, plano: "Developer" });
+});

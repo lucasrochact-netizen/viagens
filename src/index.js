@@ -9,11 +9,10 @@
  *      comparação entre companhias.
  *
  */
-import { cidade } from "./config.js";
+import { cidade, hojeSP } from "./config.js";
 import { buscar, precoPorDestino, opcoesPorDestino, topOpcoes, insights, avaliar } from "./serpapi.js";
 import { Store, calcularQuedas } from "./store.js";
 
-const hojeISO = () => new Date().toISOString().slice(0, 10);
 
 /**
  * Roda a varredura completa.
@@ -21,7 +20,7 @@ const hojeISO = () => new Date().toISOString().slice(0, 10);
  * @param {object} [opts] { fetchImpl, hoje, diaDoAno }
  */
 export async function varrer(cfg, opts = {}) {
-  const data = opts.hoje || hojeISO();
+  const data = opts.hoje || hojeSP();
   const nomesRegiao = Object.keys(cfg.regioes);
   const porRegiao = {};
   const todos = [];

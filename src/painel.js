@@ -40,6 +40,8 @@ export function dadosPainel(dataDir) {
     google: store.lerJson(store.arqGoogle, {}),
     historico: store.lerHistorico(),
     insights: lerInsightsCsv(store.csvInsights),
+    rotas: store.lerJson(store.arqRotas, null),
+    rotasHistorico: store.lerJson(store.arqRotasHist, {}),
     cidades: CIDADES,
   };
 }

@@ -61,3 +61,28 @@ export const RESPOSTA_BARATA = {
     price_history: [],
   },
 };
+
+/** Perna só de ida com horários — para as rotas fixas. */
+const voo = (de, para, partida, chegada, cia, preco) => ({
+  price: preco,
+  total_duration: 80,
+  flights: [{
+    departure_airport: { id: de, time: partida },
+    arrival_airport: { id: para, time: chegada },
+    airline: cia,
+  }],
+});
+
+/** UDI → SP numa sexta: um voo fora da janela, um GRU barato e um CGH. */
+export const IDA_UDI_SP_SEXTA = {
+  search_metadata: { status: "Success" },
+  best_flights: [
+    voo("UDI", "CGH", "2026-11-13 20:25", "2026-11-13 21:40", "LATAM", 1248),
+    voo("UDI", "GRU", "2026-11-13 19:00", "2026-11-13 20:15", "Azul", 1100),
+  ],
+  other_flights: [
+    voo("UDI", "CGH", "2026-11-13 08:55", "2026-11-13 10:15", "Gol", 900), // de manhã: fora da janela
+  ],
+};
+
+export { voo };

@@ -21,20 +21,59 @@ export class SerpApiError extends Error {
  * @param {object} [opts]    { fetchImpl } para teste
  */
 export async function buscar(cfg, arrivalId, opts = {}) {
+  return requisitar(cfg, {
+    departure_id: cfg.origem,
+    arrival_id: arrivalId,
+    outbound_date: cfg.ida,
+    return_date: cfg.volta,
+    type: "1", // ida e volta
+  }, opts);
+}
+
+/**
+ * Só ida, com filtro de horário do lado do Google.
+ * `horarios` segue o outbound_times da SerpApi: "18,23" filtra a partida
+ * (18:00–24:00); "0,23,18,23" filtra a chegada.
+ */
+export async function buscarIda(cfg, { de, para, data, horarios }, opts = {}) {
+  return requisitar(cfg, {
+    departure_id: de,
+    arrival_id: para,
+    outbound_date: data,
+    type: "2",
+    ...(horarios ? { outbound_times: horarios } : {}),
+  }, opts);
+}
+
+/**
+ * Saldo da conta. A Account API da SerpApi não conta como busca.
+ * @returns {{ restantes: number, porMes: number, plano: string }}
+ */
+export async function saldo(cfg, opts = {}) {
+  const fetchImpl = opts.fetchImpl || globalThis.fetch;
+  const url = new URL("https://serpapi.com/account.json");
+  url.searchParams.set("api_key", cfg.apiKey);
+  const res = await fetchImpl(url, { signal: AbortSignal.timeout(30_000) });
+  const j = await res.json();
+  if (!res.ok || j.error) throw new SerpApiError(j.error || `HTTP ${res.status}`, { status: res.status });
+  return {
+    restantes: Number(j.total_searches_left ?? j.plan_searches_left ?? 0),
+    porMes: Number(j.searches_per_month ?? 0),
+    plano: j.plan_name || "",
+  };
+}
+
+async function requisitar(cfg, especificos, opts) {
   const fetchImpl = opts.fetchImpl || globalThis.fetch;
   if (!cfg.apiKey) throw new SerpApiError("SERPAPI_KEY não definida");
 
   const url = new URL(BASE);
   const params = {
     engine: "google_flights",
-    departure_id: cfg.origem,
-    arrival_id: arrivalId,
-    outbound_date: cfg.ida,
-    return_date: cfg.volta,
     currency: cfg.moeda,
     hl: "pt-br",
     gl: "br",
-    type: "1", // ida e volta
+    ...especificos,
     api_key: cfg.apiKey,
   };
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
@@ -51,12 +90,12 @@ export async function buscar(cfg, arrivalId, opts = {}) {
   return json;
 }
 
-function itinerarios(json) {
+export function itinerarios(json) {
   return [...(json?.best_flights || []), ...(json?.other_flights || [])];
 }
 
 /** Companhias distintas do itinerário, na ordem dos trechos. */
-function cias(pernas) {
+export function cias(pernas) {
   const vistas = [];
   for (const p of pernas) {
     const c = p?.airline;

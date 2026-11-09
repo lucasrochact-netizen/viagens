@@ -54,6 +54,12 @@ export const CIDADES = {
   JNB: "Joanesburgo", CPT: "Cidade do Cabo", CMN: "Casablanca",
 };
 
+/**
+ * Data de hoje em São Paulo (YYYY-MM-DD). toISOString() daria a data em
+ * UTC — depois das 21h já seria amanhã.
+ */
+export const hojeSP = () => new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
+
 /** "Assunção (ASU)" — código desconhecido cai de volta pra sigla. */
 export function cidade(cod) {
   return CIDADES[cod] ? `${CIDADES[cod]} (${cod})` : cod;
@@ -77,9 +83,20 @@ export function carregarConfig(env = process.env) {
     volta: env.VARREDURA_VOLTA || "",
     moeda: env.VARREDURA_MOEDA || "BRL",
     // true = price_insights de todas as regiões (2x o custo em buscas).
-    gatilhoTodas: (env.VARREDURA_GATILHO_TODAS ?? "true") !== "false",
+    // "auto" = liga sozinho quando o plano da SerpApi tem >= 1.000 buscas/mês.
+    gatilhoTodas: env.VARREDURA_GATILHO_TODAS === "auto"
+      ? "auto"
+      : (env.VARREDURA_GATILHO_TODAS ?? "true") !== "false",
     nGatilhos: Number(env.VARREDURA_N_GATILHOS || 1),
     dataDir: env.VARREDURA_DATA_DIR || path.join(ROOT, "data", "varredura"),
     regioes,
+    rotas: {
+      finsDeSemana: Number(env.ROTAS_FINS_DE_SEMANA || 3),
+      // Outro aeroporto de SP só ganha de Congonhas se sair 20% mais barato.
+      toleranciaCgh: Number(env.ROTAS_TOLERANCIA_CGH ?? 0.2),
+      // Não roda se, depois dela, sobrariam menos buscas que isso — é a
+      // reserva da varredura diária.
+      reserva: Number(env.ROTAS_RESERVA ?? 100),
+    },
   };
 }

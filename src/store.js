@@ -11,6 +11,10 @@ import path from "node:path";
 const COLUNAS_PRECOS = [
   "data", "destino", "cidade", "regiao", "preco", "paradas", "cia", "ida", "volta",
 ];
+const COLUNAS_ROTAS = [
+  "data", "rota", "sexta", "total", "ida_preco", "ida_partida", "ida_trecho", "ida_cia",
+  "volta_preco", "volta_chegada", "volta_trecho", "volta_cia",
+];
 const COLUNAS_INSIGHTS = [
   "data", "destino", "cidade", "regiao", "preco", "faixa_min", "faixa_max", "nivel",
 ];
@@ -37,6 +41,9 @@ export class Store {
     this.csvInsights = path.join(this.dir, "insights.csv");
     this.arqGoogle = path.join(this.dir, "google.json");
     this.arqUltima = path.join(this.dir, "ultima.json");
+    this.arqRotas = path.join(this.dir, "rotas_ultima.json");
+    this.arqRotasHist = path.join(this.dir, "rotas_historico.json");
+    this.csvRotas = path.join(this.dir, "rotas.csv");
   }
 
   lerJson(arquivo, padrao) {
@@ -65,6 +72,31 @@ export class Store {
       };
     }
     writeFileSync(this.arqGoogle, JSON.stringify(atual), "utf8");
+  }
+
+  /**
+   * Rotas fixas: snapshot, série do total por viagem (rota + fim de semana)
+   * e CSV. Na série, uma segunda execução no mesmo dia substitui a primeira.
+   */
+  gravarRotas(data, r) {
+    writeFileSync(this.arqRotas, JSON.stringify(r), "utf8");
+    const hist = this.lerJson(this.arqRotasHist, {});
+    for (const v of r.viagens) {
+      if (v.total == null) continue;
+      const chave = `${v.rota}|${v.sexta}`;
+      const serie = (hist[chave] || []).filter((p) => p.data !== data);
+      serie.push({ data, total: v.total, ida: v.melhorIda.preco, volta: v.melhorVolta.preco });
+      hist[chave] = serie;
+    }
+    writeFileSync(this.arqRotasHist, JSON.stringify(hist), "utf8");
+    const p = (o, campo) => (o ? o[campo] : "");
+    appendCsv(this.csvRotas, COLUNAS_ROTAS, r.viagens.map((v) => ({
+      data, rota: v.rota, sexta: v.sexta, total: v.total ?? "",
+      ida_preco: p(v.melhorIda, "preco"), ida_partida: p(v.melhorIda, "partida"),
+      ida_trecho: v.melhorIda ? `${v.melhorIda.de}-${v.melhorIda.para}` : "", ida_cia: p(v.melhorIda, "cia"),
+      volta_preco: p(v.melhorVolta, "preco"), volta_chegada: p(v.melhorVolta, "chegada"),
+      volta_trecho: v.melhorVolta ? `${v.melhorVolta.de}-${v.melhorVolta.para}` : "", volta_cia: p(v.melhorVolta, "cia"),
+    })));
   }
 
   /** Snapshot completo da última execução — é o que o painel mostra. */

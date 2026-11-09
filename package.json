@@ -8,6 +8,7 @@
     "varredura": "node src/cli.js",
     "varredura:dry": "node src/cli.js --dry-run",
     "varredura:check": "node src/cli.js --check",
+    "rotas": "node src/cli.js --rotas",
     "painel": "node src/servidor.js",
     "test": "node --test \"test/**/*.test.js\""
   },

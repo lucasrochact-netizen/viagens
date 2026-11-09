@@ -17,6 +17,7 @@ src/cli.js          entrada do cron (--check, --dry-run)
 src/painel.js       rotas do painel (só leitura do data dir)
 src/painel.html     a página
 src/servidor.js     servidor do painel (npm run painel)
+src/rotas.js        rotas fixas de fim de semana (npm run rotas)
 deploy/viagens-painel.service   unit do systemd
 test/               16 testes, sem rede
 ```
@@ -33,12 +34,7 @@ Primeira execução real em 08/11/2026: 42 destinos, 7 gatilhos com
    sudo systemctl daemon-reload
    sudo systemctl enable --now viagens-painel
    ```
-2. **Rotas fixas** — ainda não especificadas. O usuário monitora rotas
-   recorrentes em janelas de horário (ex.: sair sexta à noite, voltar
-   segunda à noite). Falta ele informar origem, destino, janelas e dias.
-   Reaproveita `serpapi.js` e `store.js`; os parâmetros `outbound_times`,
-   `return_times` e `include_airlines` da SerpApi filtram do lado do servidor.
-3. **Histórico do Windows** (abaixo).
+2. **Histórico do Windows** (abaixo).
 
 ## `.env`
 
@@ -81,6 +77,26 @@ destino só — cobre São Paulo inteira em 1 chamada e mantém o sinal.
 todo dia e o destino "diferente" nunca aparece. O ranking útil é o desvio
 da faixa típica da própria rota.
 
+## Rotas fixas
+
+`src/rotas.js`, cron seg e qui às 9h05 (`--rotas`), próximos 3 fins de semana.
+
+| Viagem | Ida | Volta |
+|---|---|---|
+| Uberlândia ↔ São Paulo (os dois sentidos) | sex ≥18h ou sáb <12h | chega dom ≥18h ou seg <10h |
+| São Paulo → Brasília | idem | idem |
+| Uberlândia → Goiânia | idem | idem |
+
+- Cada perna é busca **só de ida** com `outbound_times` (ida-e-volta custaria
+  uma chamada extra por opção de volta). 16 buscas por fim de semana.
+- O filtro do Google olha só a **hora**; `aceita()` confere data + hora
+  (voo de segunda 18:20 chegando terça 06:25 passava como "antes das 10h").
+- São Paulo = `CGH,GRU,VCP`; `escolher()` fica com CGH a menos que outro
+  saia ≥20% mais barato (`ROTAS_TOLERANCIA_CGH`).
+- Uberaba (UBA) não existe no Google Flights; o lado "Uberaba" é `UBA,UDI`.
+- Antes de rodar, a CLI consulta o saldo (Account API, não conta busca) e
+  pula se sobrariam menos de `ROTAS_RESERVA` (100) buscas.
+
 ## Custo
 
 Roda **todo dia às 9h** (crontab do claude-agent) com
@@ -92,8 +108,10 @@ Desde 08/11 são 8 regiões (EUA separado, com o Texas).
 | Diária, gatilho em rodízio (atual) | ~280 | estoura ~dia 27 |
 | Diária, todos os gatilhos (`true`) | ~490 | plano de US$ 25 (1.000) |
 
-O usuário optou pelo plano de US$ 25. Quando ele estiver ativo, trocar
-para `VARREDURA_GATILHO_TODAS=true`.
+O usuário assinou o plano de US$ 25 em 08/11 (a API ainda mostrava Free
+Plan nessa noite). `VARREDURA_GATILHO_TODAS=auto` liga as 8 faixas sozinho
+quando o saldo mostrar >= 1.000 buscas/mês. Com plano: ~490 (internacional)
++ ~420 (rotas) = ~910/mês.
 
 Com rodízio, a faixa normal de cada região se renova a cada 7 dias; o painel
 compara a faixa mais recente com o preço de hoje (que vem da descoberta,

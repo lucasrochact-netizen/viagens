@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Varredura de Passagens</title>
+<title>Viagens</title>
 <style>
   :root {
     color-scheme: light;
@@ -72,6 +72,26 @@
   .chip { font: 0.8rem ui-sans-serif, system-ui, sans-serif; border: 1px solid var(--line); background: transparent; color: var(--ink-2); border-radius: 999px; padding: 4px 11px; cursor: pointer; }
   .chip[aria-pressed=true] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
 
+  h2.bloco { font-size: 1.5rem; margin: 36px 0 0; }
+  .rota { padding: 14px 0 18px; border-top: 1px solid var(--line); }
+  .rota:first-child { border-top: 0; padding-top: 0; }
+  .rota h3 { margin: 0 0 10px; font-size: 1.05rem; }
+  .fds-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+  .fds { border: 1px solid var(--line); border-radius: 8px; padding: 12px; cursor: pointer; background: var(--surface); text-align: left; font: inherit; color: inherit; }
+  .fds:hover, .fds[aria-expanded=true] { border-color: var(--ink-3); background: var(--bg); }
+  .fds .quando { font-size: 0.8rem; color: var(--ink-3); }
+  .fds .total { font-size: 1.35rem; font-weight: 700; font-variant-numeric: tabular-nums; margin: 2px 0 6px; }
+  .fds .perna { font-size: 0.82rem; color: var(--ink-2); line-height: 1.45; }
+  .fds .perna b { color: var(--ink); font-weight: 600; }
+  .delta { font: 0.75rem ui-monospace, monospace; margin-left: 6px; }
+  .delta.caiu { color: var(--good); } .delta.subiu { color: var(--warn); }
+  .aviso { color: var(--warn); font-size: 0.78rem; }
+  .rota-detalhe { margin-top: 12px; padding: 14px; background: var(--bg); border-radius: 8px; }
+  .janelas { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px 22px; margin-top: 10px; }
+  .janelas h4 { margin: 0 0 4px; font-size: 0.85rem; }
+  .op { display: flex; justify-content: space-between; gap: 10px; font-size: 0.82rem; padding: 3px 0; border-bottom: 1px dashed var(--grid); }
+  .op.escolhida { font-weight: 600; }
+  .op > span:last-child { white-space: nowrap; font-variant-numeric: tabular-nums; }
   .tag { display: inline-flex; align-items: center; gap: 4px; font: 0.75rem ui-monospace, monospace; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
   .tag.abaixo { background: var(--good-bg); color: var(--good); }
   .tag.acima { background: var(--warn-bg); color: var(--warn); }
@@ -130,8 +150,16 @@
 </head>
 <body>
 <main>
-  <p class="eyebrow">Varredura internacional</p>
-  <h1>Passagens saindo de São Paulo</h1>
+  <p class="eyebrow">Viagens</p>
+  <h1>Passagens</h1>
+
+  <section id="sec-rotas" hidden>
+    <h2>Fins de semana</h2>
+    <p class="nota" id="rotas-sub"></p>
+    <div id="rotas"></div>
+  </section>
+
+  <h2 class="bloco">Internacional saindo de São Paulo</h2>
   <p class="sub" id="cabecalho">carregando…</p>
 
   <div class="controles">
@@ -182,7 +210,7 @@ const paradas = (p) => (p === 0 ? "direto" : `${p} parada${p > 1 ? "s" : ""}`);
 const dataBR = (iso) => iso.split("-").reverse().join("/");
 const SVGNS = "http://www.w3.org/2000/svg";
 
-const estado = { fator: 1.5, ordem: "regiao", regiao: null, aberto: null };
+const estado = { fator: 1.5, ordem: "regiao", regiao: null, aberto: null, fdsAberto: null };
 let D = null;
 
 function nome(cod) {
@@ -387,10 +415,19 @@ $("#tabela").addEventListener("click", (e) => {
 
 // ---------- gráfico de linha (Google) + pontos (nossas execuções)
 
+const pontosDe = (serie, campo = "preco") => (serie || []).map((p) => ({ t: Date.parse(p.data), preco: p[campo], data: p.data }));
+
 function desenharGrafico(el, cod, { altura = 150 } = {}) {
-  const google = (D.google[cod]?.pontos || []).map((p) => ({ t: Date.parse(p.data), preco: p.preco, data: p.data }));
-  const nossos = (D.historico[cod] || []).map((p) => ({ t: Date.parse(p.data), preco: p.preco, data: p.data }));
-  const ins = insightAtual(cod);
+  desenharSerie(el, {
+    google: pontosDe(D.google[cod]?.pontos),
+    nossos: pontosDe(D.historico[cod]),
+    ins: insightAtual(cod),
+    altura,
+  });
+}
+
+/** Linha azul (Google), linha+pontos laranja (nossas execuções), faixa opcional. */
+function desenharSerie(el, { google = [], nossos = [], ins = null, altura = 150, nomes = ["Google", "Nossa"] }) {
   const todos = [...google, ...nossos];
   if (!todos.length) { el.innerHTML = `<p class="vazio">Sem dados ainda.</p>`; return; }
 
@@ -441,7 +478,7 @@ function desenharGrafico(el, cod, { altura = 150 } = {}) {
     const cx = X(Date.parse(dia));
     cruz.setAttribute("x1", cx); cruz.setAttribute("x2", cx); cruz.setAttribute("opacity", 1);
     tip.innerHTML = `<strong>${dataBR(dia)}</strong>` +
-      (g ? `<br>Google ${brl(g.preco)}` : "") + (n ? `<br>Nossa ${brl(n.preco)}` : "");
+      (g ? `<br>${nomes[0]} ${brl(g.preco)}` : "") + (n ? `<br>${nomes[1]} ${brl(n.preco)}` : "");
     tip.style.left = `${(cx / w) * 100}%`;
     tip.style.top = `${(Y((g || n).preco) / h) * r.height}px`;
     tip.style.opacity = 1;
@@ -466,7 +503,83 @@ function renderHistorico() {
   for (const el of $("#historico").querySelectorAll(".grafico")) desenharGrafico(el, el.dataset.dest);
 }
 
+// ---------- rotas fixas
+
+const NOME_JANELA = { "sex-noite": "Sexta à noite", "sab-manha": "Sábado de manhã", "dom-noite": "Chega domingo à noite", "seg-cedo": "Chega segunda até 10h" };
+const DIA_SEM = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+const hm = (dt) => dt.slice(11, 16);
+const diaSem = (dt) => DIA_SEM[new Date(dt.slice(0, 10) + "T12:00:00Z").getUTCDay()];
+
+function fdsRotulo(sexta) {
+  const d = new Date(sexta + "T12:00:00Z"), seg = new Date(d); seg.setUTCDate(d.getUTCDate() + 3);
+  const f = (x) => `${String(x.getUTCDate()).padStart(2, "0")}/${String(x.getUTCMonth() + 1).padStart(2, "0")}`;
+  return `${f(d)} – ${f(seg)}`;
+}
+
+function linhaPerna(rotulo, o, campoHora) {
+  if (!o) return `<div class="perna">${rotulo}: <span class="aviso">sem voo na janela</span></div>`;
+  const naoCgh = o.motivo && o.motivo !== "CGH" && o.motivo !== "mais barata" ? `<br><span class="aviso">${esc(o.motivo)}</span>` : "";
+  return `<div class="perna">${rotulo}: <b>${diaSem(o[campoHora])} ${hm(o[campoHora])}</b> · ${esc(o.de)}→${esc(o.para)} · ${esc(o.cia)} · ${brl(o.preco)}${naoCgh}</div>`;
+}
+
+function deltaHtml(rota, sexta) {
+  const serie = D.rotasHistorico?.[`${rota}|${sexta}`] || [];
+  if (serie.length < 2) return "";
+  const [a, b] = serie.slice(-2), d = b.total - a.total;
+  if (!d) return "";
+  return `<span class="delta ${d < 0 ? "caiu" : "subiu"}">${d < 0 ? "▼" : "▲"} ${brl(Math.abs(d))}</span>`;
+}
+
+function renderRotas() {
+  const R = D.rotas;
+  if (!R) return;
+  $("#sec-rotas").hidden = false;
+  $("#rotas-sub").innerHTML = `Ida sexta à noite ou sábado de manhã; volta chegando domingo à noite ou segunda até 10h. Em São Paulo prefere Congonhas, a menos que outro aeroporto saia 20% mais barato. Atualizado em ${dataBR(R.data)}. Clique num fim de semana para ver todos os voos.`;
+  $("#rotas").innerHTML = R.rotas.map((rota) => {
+    const vs = R.viagens.filter((v) => v.rota === rota.id);
+    const aberta = vs.find((v) => estado.fdsAberto === `${rota.id}|${v.sexta}`);
+    return `<div class="rota"><h3>${esc(rota.nome)} → volta</h3><div class="fds-grid">${vs.map((v) => `
+      <button class="fds" data-k="${esc(rota.id)}|${esc(v.sexta)}" aria-expanded="${aberta === v}">
+        <div class="quando">${fdsRotulo(v.sexta)}</div>
+        <div class="total">${v.total ? brl(v.total) : "—"}${deltaHtml(rota.id, v.sexta)}</div>
+        ${linhaPerna("Ida", v.melhorIda, "partida")}
+        ${linhaPerna("Volta", v.melhorVolta, "chegada")}
+      </button>`).join("")}</div>
+      ${aberta ? detalheFds(rota, aberta) : ""}</div>`;
+  }).join("");
+  const g = $("#rotas .grafico-rota");
+  if (g) {
+    const serie = D.rotasHistorico?.[g.dataset.k] || [];
+    desenharSerie(g, { nossos: pontosDe(serie, "total"), altura: 140, nomes: ["", "Total"] });
+  }
+}
+
+function detalheFds(rota, v) {
+  const bloco = (p, campoHora) => {
+    const ops = p.opcoes.slice(0, 8).map((o) => {
+      const esc0 = p.escolha && o.preco === p.escolha.preco && o.partida === p.escolha.partida;
+      return `<div class="op ${esc0 ? "escolhida" : ""}"><span>${hm(o.partida)}→${hm(o.chegada)} · ${esc(o.de)}→${esc(o.para)} · ${o.paradas ? o.paradas + " parada" + (o.paradas > 1 ? "s" : "") : "direto"} · ${esc(o.cia)}</span><span>${brl(o.preco)}</span></div>`;
+    }).join("");
+    return `<div><h4>${NOME_JANELA[p.janela]} <span class="meta">${p.opcoes.length ? diaSem(p.opcoes[0][campoHora]) + " " + dataBR(p.opcoes[0][campoHora].slice(0, 10)).slice(0, 5) : ""}</span></h4>
+      ${ops || `<p class="vazio">${p.erro ? "Falhou: " + esc(p.erro) : "Nenhum voo nessa janela."}</p>`}</div>`;
+  };
+  const n = (D.rotasHistorico?.[`${rota.id}|${v.sexta}`] || []).length;
+  return `<div class="rota-detalhe">
+    <div class="meta">Evolução do total para ${fdsRotulo(v.sexta)} (${n} ${n === 1 ? "consulta" : "consultas"})</div>
+    <div class="grafico grafico-rota" data-k="${esc(rota.id)}|${esc(v.sexta)}"></div>
+    <div class="janelas">${v.ida.map((p) => bloco(p, "partida")).join("")}${v.volta.map((p) => bloco(p, "chegada")).join("")}</div>
+  </div>`;
+}
+
+$("#rotas").addEventListener("click", (e) => {
+  const b = e.target.closest(".fds");
+  if (!b) return;
+  estado.fdsAberto = estado.fdsAberto === b.dataset.k ? null : b.dataset.k;
+  renderRotas();
+});
+
 function renderTudo() {
+  renderRotas();
   renderCabecalho();
   renderFaixas();
   renderTabela();
@@ -481,6 +594,7 @@ fetch(location.pathname.replace(/\/?$/, "/") + "dados.json")
   .then((dados) => {
     D = dados;
     if (!D.ultima) {
+      renderRotas();
       $("#cabecalho").textContent = "Nenhuma varredura gravada ainda. Rode npm run varredura.";
       return;
     }
