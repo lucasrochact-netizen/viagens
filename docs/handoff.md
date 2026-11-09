@@ -93,7 +93,7 @@ da faixa típica da própria rota.
   (voo de segunda 18:20 chegando terça 06:25 passava como "antes das 10h").
 - São Paulo = `CGH,GRU,VCP`; `escolher()` fica com CGH a menos que outro
   saia ≥20% mais barato (`ROTAS_TOLERANCIA_CGH`).
-- Uberaba (UBA) não existe no Google Flights; o lado "Uberaba" é `UBA,UDI`.
+- As rotas usam Uberlândia (UDI). Uberaba (UBA) não existe no Google Flights.
 - Antes de rodar, a CLI consulta o saldo (Account API, não conta busca) e
   pula se sobrariam menos de `ROTAS_RESERVA` (100) buscas.
 

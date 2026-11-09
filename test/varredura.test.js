@@ -236,9 +236,9 @@ test("rotas: sem voo na janela vira perna vazia, não erro", async () => {
   const fetchImpl = async (url) => {
     const p = new URL(url).searchParams;
     if (p.get("type") !== "2") throw new Error("rotas devem buscar só ida");
-    if (p.get("departure_id") === "UBA,UDI" && p.get("arrival_id") === "CGH,GRU,VCP" && p.get("outbound_date") === "2026-11-13")
+    if (p.get("departure_id") === "UDI" && p.get("arrival_id") === "CGH,GRU,VCP" && p.get("outbound_date") === "2026-11-13")
       return { ok: true, status: 200, json: async () => IDA_UDI_SP_SEXTA };
-    if (p.get("departure_id") === "CGH,GRU,VCP" && p.get("arrival_id") === "UBA,UDI" && p.get("outbound_date") === "2026-11-15")
+    if (p.get("departure_id") === "CGH,GRU,VCP" && p.get("arrival_id") === "UDI" && p.get("outbound_date") === "2026-11-15")
       return { ok: true, status: 200, json: async () => ({ best_flights: [voo("CGH", "UDI", "2026-11-15 19:30", "2026-11-15 20:45", "Gol", 700)] }) };
     return { ok: true, status: 200, json: async () => ({ error: "Google Flights hasn't returned any results for this query." }) };
   };

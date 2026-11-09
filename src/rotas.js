@@ -13,9 +13,8 @@ import { buscarIda, itinerarios, cias, SerpApiError } from "./serpapi.js";
 import { hojeSP } from "./config.js";
 
 export const SP = "CGH,GRU,VCP";
-// Uberaba (UBA) não existe no Google Flights — ver docs/varredura.md.
-// Fica na busca, sem custo, caso volte a ter voo.
-export const UDI = "UBA,UDI";
+// Uberlândia, não Uberaba: UBA não existe no Google Flights (docs/varredura.md).
+export const UDI = "UDI";
 
 export const ROTAS = [
   { id: "udi-sp", nome: "Uberlândia → São Paulo", casa: UDI, destino: SP },
